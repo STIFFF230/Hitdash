@@ -35,3 +35,27 @@ func _find_player() -> MainCharacter:
 
 func _on_player_died() -> void:
 	game_over_screen.show_screen()
+
+# --- Atajos para grabar el trailer --------------------------------------
+# Solo responden con "Modo trailer" activado en el EnemySpawner.
+#   F1 o 7 = vida al maximo
+#   F2 o 8 = saltar a la siguiente oleada
+#   F3 o 9 = invencible on / off
+# Los numeros existen porque en Mac las teclas F piden Fn.
+
+func _unhandled_input(event: InputEvent) -> void:
+	if not spawner.trailer_active():
+		return
+	if not (event is InputEventKey and event.pressed and not event.echo):
+		return
+
+	match (event as InputEventKey).keycode:
+		KEY_F1, KEY_7:
+			if player != null:
+				player.heal_full()
+		KEY_F2, KEY_8:
+			spawner.jump_to_wave(spawner.wave_index() + 1)
+		KEY_F3, KEY_9:
+			if player != null:
+				player.debug_invincible = not player.debug_invincible
+				print("[trailer] invencible: ", player.debug_invincible)

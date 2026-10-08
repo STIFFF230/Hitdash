@@ -35,6 +35,14 @@ signal kills_changed(kills: int)
 ## Cuanto se refuerzan los enemigos por cada escalon del modo infinito.
 @export var endless_growth: float = 1.12
 
+@export_group("Modo trailer (solo para grabar)")
+## Activalo SOLO mientras se graba el trailer. Para la entrega debe quedar en false.
+@export var trailer_mode: bool = false
+## Multiplica el dano de TODOS los enemigos. 1.0 = normal, 0.5 = la mitad.
+@export_range(0.05, 1.0, 0.05) var trailer_damage_scale: float = 0.5
+## Divide las bajas necesarias por oleada, para llegar antes a la 6.
+@export_range(1, 10, 1) var trailer_kills_divisor: int = 1
+
 @onready var _timer: Timer = $SpawnTimer
 
 var _player: Node2D = null
@@ -117,6 +125,33 @@ func wave_label() -> String:
 	return wave.display_name
 
 
+func wave_index() -> int:
+	return _wave_index
+
+
+## El modo trailer solo funciona corriendo desde el editor, nunca en un export.
+func trailer_active() -> bool:
+	return trailer_mode and OS.is_debug_build()
+
+
+## Bajas para pasar de oleada, ya con el divisor del modo trailer aplicado.
+func _kills_needed(wave: WaveConfig) -> int:
+	if trailer_active() and trailer_kills_divisor > 1:
+		return maxi(1, ceili(float(wave.kills_to_advance) / float(trailer_kills_divisor)))
+	return wave.kills_to_advance
+
+
+## Salta directo a una oleada (0 = la primera). Solo para grabar el trailer.
+func jump_to_wave(index: int) -> void:
+	if waves.is_empty():
+		return
+	_wave_index = clampi(index, 0, waves.size() - 1)
+	_kills_this_wave = 0
+	_endless_level = 0
+	_apply_wave_settings()
+	_announce_wave()
+
+
 # --- Generacion ---------------------------------------------------------
 
 func _on_spawn_timer_timeout() -> void:
@@ -178,8 +213,12 @@ func _pick_scene(wave: WaveConfig) -> PackedScene:
 func _apply_wave_stats(enemy: Node, wave: WaveConfig) -> void:
 	var boost: float = pow(endless_growth, _endless_level)
 
+	var damage_factor: float = wave.damage_multiplier * boost
+	if trailer_active():
+		damage_factor *= trailer_damage_scale
+
 	_scale_stat(enemy, "max_health", wave.health_multiplier * boost)
-	_scale_stat(enemy, "attack_damage", wave.damage_multiplier * boost)
+	_scale_stat(enemy, "attack_damage", damage_factor)
 	_scale_stat(enemy, "speed", wave.speed_multiplier)
 
 	# El enemigo nace con la vida llena ya reforzada.
@@ -216,7 +255,7 @@ func _on_enemy_died() -> void:
 	var wave := current_wave()
 	if wave == null:
 		return
-	if _kills_this_wave >= wave.kills_to_advance:
+	if _kills_this_wave >= _kills_needed(wave):
 		_advance_wave()
 
 

@@ -27,6 +27,8 @@ var is_attacking: bool = false
 var health: float
 var is_dead: bool = false
 var is_invulnerable: bool = false
+## Solo para grabar el trailer: ignora todo el dano recibido.
+var debug_invincible: bool = false
 
 func _ready() -> void:
 	attack_hitbox.disabled = true
@@ -139,7 +141,7 @@ func _on_attack_area_body_entered(body) -> void:
 		body.hurt(attack_damage)
 
 func hurt(damage: float) -> void:
-	if is_dead or is_invulnerable:
+	if is_dead or is_invulnerable or debug_invincible:
 		return
 	health = max(health - damage, 0.0)
 	health_changed.emit(health, max_health)
@@ -148,6 +150,13 @@ func hurt(damage: float) -> void:
 		die()
 		return
 	_flash_damage()
+
+## Solo para grabar el trailer: devuelve la vida al maximo.
+func heal_full() -> void:
+	if is_dead:
+		return
+	health = max_health
+	health_changed.emit(health, max_health)
 
 func _spawn_damage_number(amount: float) -> void:
 	var damage_number = damage_number_scene.instantiate()
