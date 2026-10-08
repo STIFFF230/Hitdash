@@ -10,6 +10,7 @@ extends Node2D
 
 signal wave_changed(index: int, display_name: String, endless_level: int)
 signal kills_changed(kills: int)
+signal score_changed(score: int)
 
 @export_group("Escenas de enemigos")
 @export var orc_scene: PackedScene = preload("res://Entities/Enemies/orcs/orc_1.tscn")
@@ -29,6 +30,9 @@ signal kills_changed(kills: int)
 ## Total de enemigos a generar en toda la partida. -1 = infinito.
 @export var total_to_spawn: int = -1
 
+@export_group("Puntaje")
+@export var score_growth: float = 0.1
+
 @export_group("Oleadas")
 ## Si se deja vacio se usan las oleadas por defecto definidas en el codigo.
 @export var waves: Array[WaveConfig] = []
@@ -47,6 +51,7 @@ signal kills_changed(kills: int)
 
 var _player: Node2D = null
 var _spawned_total: int = 0
+var _score: int = 0
 var _kills: int = 0
 var _kills_this_wave: int = 0
 var _wave_index: int = 0
@@ -125,6 +130,14 @@ func wave_label() -> String:
 	return wave.display_name
 
 
+func score() -> int:
+	return _score
+
+
+func kills() -> int:
+	return _kills
+
+
 func wave_index() -> int:
 	return _wave_index
 
@@ -179,7 +192,7 @@ func _spawn_one(wave: WaveConfig) -> void:
 	enemy.scale = enemy_scale
 	_apply_wave_stats(enemy, wave)
 	if enemy.has_signal("died"):
-		enemy.connect("died", _on_enemy_died)
+		enemy.connect("died", _on_enemy_died.bind(enemy))
 
 	add_child(enemy)
 	enemy.global_position = _pick_spawn_position()
@@ -247,7 +260,10 @@ func _pick_spawn_position() -> Vector2:
 
 # --- Progresion de oleadas ----------------------------------------------
 
-func _on_enemy_died() -> void:
+func _on_enemy_died(enemy: Node) -> void:
+	var value: int = int(enemy.get("score_value")) if "score_value" in enemy else 10
+	_score += roundi(value * (1.0 + score_growth * (_wave_index + _endless_level)))
+	score_changed.emit(_score)
 	_kills += 1
 	_kills_this_wave += 1
 	kills_changed.emit(_kills)
@@ -280,3 +296,4 @@ func _apply_wave_settings() -> void:
 func _announce_wave() -> void:
 	wave_changed.emit(_wave_index, wave_label(), _endless_level)
 	kills_changed.emit(_kills)
+	score_changed.emit(_score)

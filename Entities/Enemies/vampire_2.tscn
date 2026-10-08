@@ -11,6 +11,7 @@ size = Vector2(13.25, 19)
 collision_layer = 9
 collision_mask = 2
 script = ExtResource("1_script")
+score_value = 30
 max_health = 210.0
 attack_damage = 20.0
 speed = 110.0

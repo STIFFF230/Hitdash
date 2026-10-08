@@ -4,6 +4,8 @@ extends CanvasLayer
 
 var _root: Control
 var _restart_button: Button
+var _summary: Label
+var _rank_label: Label
 
 
 func _ready() -> void:
@@ -40,11 +42,15 @@ func _build_ui() -> void:
 	titulo.add_theme_color_override("font_color", Color(0.9, 0.2, 0.2))
 	box.add_child(titulo)
 
-	var ayuda := Label.new()
-	ayuda.text = "Pulsa Reiniciar o Enter para volver a empezar"
-	ayuda.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	ayuda.add_theme_font_size_override("font_size", 18)
-	box.add_child(ayuda)
+	_summary = Label.new()
+	_summary.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_summary.add_theme_font_size_override("font_size", 18)
+	box.add_child(_summary)
+	_rank_label = Label.new()
+	_rank_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_rank_label.add_theme_font_size_override("font_size", 24)
+	_rank_label.add_theme_color_override("font_color", Color(0.95, 0.8, 0.35))
+	box.add_child(_rank_label)
 
 	_restart_button = Button.new()
 	_restart_button.text = "Reiniciar"
@@ -52,9 +58,18 @@ func _build_ui() -> void:
 	_restart_button.add_theme_font_size_override("font_size", 24)
 	_restart_button.pressed.connect(_on_restart_pressed)
 	box.add_child(_restart_button)
+	var menu_button := Button.new()
+	menu_button.text = "Menú principal"
+	menu_button.custom_minimum_size = Vector2(220, 56)
+	menu_button.add_theme_font_size_override("font_size", 24)
+	menu_button.pressed.connect(_on_menu_pressed)
+	box.add_child(menu_button)
 
 
-func show_screen() -> void:
+func show_screen(score: int, kills: int, wave: String, rank: int) -> void:
+	_summary.text = "Puntaje: %d\nBajas: %d\nLlegaste a: %s" % [score, kills, wave]
+	_rank_label.visible = rank > 0
+	_rank_label.text = "¡NUEVO RÉCORD!" if rank == 1 else "Top %d de los récords" % rank
 	visible = true
 	get_tree().paused = true
 	if _restart_button != null:
@@ -74,3 +89,8 @@ func _unhandled_input(event: InputEvent) -> void:
 func _on_restart_pressed() -> void:
 	get_tree().paused = false
 	get_tree().reload_current_scene()
+
+
+func _on_menu_pressed() -> void:
+	get_tree().paused = false
+	get_tree().change_scene_to_file("res://Scenes/main_menu.tscn")

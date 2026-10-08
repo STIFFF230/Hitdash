@@ -9,6 +9,10 @@ var _kills_label: Label
 var _enemies_label: Label
 var _banner: Label
 
+var _score_label: Label
+var _best_label: Label
+var _score: int = 0
+var _best: int = 0
 var _kills: int = 0
 
 
@@ -83,6 +87,19 @@ func _build_ui() -> void:
 	_wave_label.add_theme_font_size_override("font_size", 18)
 	_wave_label.add_theme_color_override("font_color", Color(0.95, 0.8, 0.35))
 	wave_box.add_child(_wave_label)
+
+	_score_label = Label.new()
+	_score_label.text = "Puntaje: 0"
+	_score_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_score_label.add_theme_font_size_override("font_size", 18)
+	_score_label.add_theme_color_override("font_color", Color(0.95, 0.8, 0.35))
+	wave_box.add_child(_score_label)
+
+	_best_label = Label.new()
+	_best_label.text = "Récord: 0"
+	_best_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_best_label.add_theme_font_size_override("font_size", 14)
+	wave_box.add_child(_best_label)
 
 	_kills_label = Label.new()
 	_kills_label.text = "Bajas: 0"
@@ -175,3 +192,14 @@ func _show_banner(text: String) -> void:
 func _process(_delta: float) -> void:
 	if _enemies_label != null:
 		_enemies_label.text = "Enemigos: %d" % get_tree().get_nodes_in_group("Enemy").size()
+
+
+func update_score(score: int) -> void:
+	_score = score
+	_score_label.text = "Puntaje: %d" % score
+	_best_label.text = "Récord: %d" % maxi(_best, _score)
+
+
+func set_best(best: int) -> void:
+	_best = best
+	_best_label.text = "Récord: %d" % maxi(_best, _score)

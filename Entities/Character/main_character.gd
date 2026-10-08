@@ -90,7 +90,7 @@ func start_dash():
 	velocity = last_direction * dash_speed
 
 	# Duración del dash
-	await get_tree().create_timer(dash_duration).timeout
+	await get_tree().create_timer(dash_duration, false).timeout
 
 	# Restaurar colisión física tras el desplazamiento
 	collision_mask = prev_mask
@@ -98,14 +98,14 @@ func start_dash():
 
 	# Mantener invulnerabilidad si el tiempo configurado supera la duración del dash
 	if dash_invulnerable_time > dash_duration:
-		await get_tree().create_timer(dash_invulnerable_time - dash_duration).timeout
+		await get_tree().create_timer(dash_invulnerable_time - dash_duration, false).timeout
 
 	if not is_dead:
 		character_sprite.modulate = Color.WHITE
 	is_invulnerable = false
 
 	# Cooldown
-	await get_tree().create_timer(dash_cooldown).timeout
+	await get_tree().create_timer(dash_cooldown, false).timeout
 
 	can_dash = true
 	

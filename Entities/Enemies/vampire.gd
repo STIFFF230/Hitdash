@@ -7,6 +7,8 @@ extends CharacterBody2D
 
 signal died
 
+@export var score_value: int = 20
+
 @export_group("Vida y dano")
 @export var health: float = 0.0
 @export var max_health: float = 160.0

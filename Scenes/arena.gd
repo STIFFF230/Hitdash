@@ -5,6 +5,7 @@ extends Node2D
 @onready var hud = $HUD
 @onready var game_over_screen = $GameOverScreen
 @onready var spawner = $EnemySpawner
+@onready var pause_menu: CanvasLayer = $PauseMenu
 
 var player: MainCharacter = null
 
@@ -12,8 +13,15 @@ var player: MainCharacter = null
 func _ready() -> void:
 	spawner.wave_changed.connect(hud.update_wave)
 	spawner.kills_changed.connect(hud.update_kills)
+	spawner.score_changed.connect(hud.update_score)
+	hud.set_best(RecordsStore.best_score())
+	pause_menu.restart_requested.connect(_on_restart_requested)
+	pause_menu.menu_requested.connect(_on_menu_requested)
+	pause_menu.spawner = spawner
+	pause_menu.game_over_screen = game_over_screen
 
 	player = _find_player()
+	pause_menu.player = player
 	if player == null:
 		push_warning("Arena: no se encontro al MainCharacter en el grupo 'Player'.")
 		return
@@ -34,7 +42,27 @@ func _find_player() -> MainCharacter:
 
 
 func _on_player_died() -> void:
-	game_over_screen.show_screen()
+	var rank := _save_record()
+	game_over_screen.show_screen(spawner.score(), spawner.kills(), spawner.wave_label(), rank)
+
+
+func _save_record() -> int:
+	if spawner.trailer_active() or spawner.score() <= 0:
+		return 0
+	return RecordsStore.submit(spawner.score(), spawner.kills(), spawner.wave_label())
+
+
+func _on_restart_requested() -> void:
+	_save_record()
+	get_tree().paused = false
+	get_tree().reload_current_scene()
+
+
+func _on_menu_requested() -> void:
+	_save_record()
+	get_tree().paused = false
+	get_tree().change_scene_to_file("res://Scenes/main_menu.tscn")
+
 
 # --- Atajos para grabar el trailer --------------------------------------
 # Solo responden con "Modo trailer" activado en el EnemySpawner.

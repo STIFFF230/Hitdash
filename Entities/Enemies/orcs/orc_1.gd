@@ -2,6 +2,8 @@ extends CharacterBody2D
 
 signal died
 
+@export var score_value: int = 10
+
 @export var health: float
 @export var max_health: float = 100.0
 @export var attack_damage: float
