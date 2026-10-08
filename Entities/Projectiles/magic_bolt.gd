@@ -22,6 +22,7 @@ func setup(new_direction: Vector2, new_speed: float, new_damage: float) -> void:
 
 
 func _ready() -> void:
+	add_to_group("Projectile")
 	body_entered.connect(_on_body_entered)
 	rotation = direction.angle()
 

@@ -9,6 +9,8 @@
 
 [ext_resource type="Script" path="res://Scenes/pause_menu.gd" id="8_pause"]
 
+[ext_resource type="Script" path="res://Scenes/level_transition.gd" id="9_transition"]
+
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_top_bottom"]
 size = Vector2(1200, 32)
 
@@ -67,3 +69,6 @@ shape = SubResource("RectangleShape2D_left_right")
 [node name="Right" type="CollisionShape2D" parent="ScreenBoundaries" unique_id=987654325]
 position = Vector2(1168, 324)
 shape = SubResource("RectangleShape2D_left_right")
+
+[node name="LevelTransition" type="Node2D" parent="."]
+script = ExtResource("9_transition")

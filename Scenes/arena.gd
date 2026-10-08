@@ -2,6 +2,7 @@ extends Node2D
 ## Escena de combate: conecta al jugador con el HUD, el generador
 ## de enemigos y la pantalla de Game Over.
 
+@onready var level_transition: LevelTransition = $LevelTransition
 @onready var hud = $HUD
 @onready var game_over_screen = $GameOverScreen
 @onready var spawner = $EnemySpawner
@@ -31,6 +32,11 @@ func _ready() -> void:
 		push_warning("Arena: no se encontro al MainCharacter en el grupo 'Player'.")
 		return
 
+	level_transition.player = player
+	level_transition.spawner = spawner
+	spawner.level_cleared.connect(level_transition.begin)
+	level_transition.finished.connect(spawner.start_next_level)
+	player.upgrades_changed.connect(hud.update_upgrades)
 	player.health_changed.connect(hud.update_health)
 	player.died.connect(_on_player_died)
 

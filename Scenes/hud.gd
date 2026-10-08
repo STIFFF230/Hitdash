@@ -8,6 +8,8 @@ var _wave_label: Label
 var _kills_label: Label
 var _enemies_label: Label
 var _banner: Label
+var _banner_tween: Tween
+var _upgrades_label: Label
 
 var _score_label: Label
 var _best_label: Label
@@ -114,6 +116,12 @@ func _build_ui() -> void:
 	_enemies_label.add_theme_font_size_override("font_size", 14)
 	wave_box.add_child(_enemies_label)
 
+	_upgrades_label = Label.new()
+	_upgrades_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_upgrades_label.add_theme_font_size_override("font_size", 13)
+	wave_box.add_child(_upgrades_label)
+	update_upgrades(0, 0, 0)
+
 	# --- Cartel central de cambio de oleada ---
 	var banner_holder := CenterContainer.new()
 	banner_holder.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -184,7 +192,10 @@ func _show_banner(text: String) -> void:
 		return
 	_banner.text = text
 	_banner.modulate.a = 0.0
-	var tween := create_tween()
+	if _banner_tween != null:
+		_banner_tween.kill()
+	_banner_tween = create_tween()
+	var tween: Tween = _banner_tween
 	tween.tween_property(_banner, "modulate:a", 1.0, 0.35)
 	tween.tween_interval(1.3)
 	tween.tween_property(_banner, "modulate:a", 0.0, 0.6)
@@ -212,3 +223,11 @@ func _refresh_best() -> void:
 	_best_label.text = "Récord: %d" % maxi(_best, _score)
 	if not best_name.is_empty():
 		_best_label.text += " · " + best_name
+
+
+func show_message(text: String) -> void:
+	_show_banner(text)
+
+
+func update_upgrades(health: int, attack: int, speed: int) -> void:
+	_upgrades_label.text = "Mejoras: Vida x%d · Ataque x%d · Velocidad x%d" % [health, attack, speed]

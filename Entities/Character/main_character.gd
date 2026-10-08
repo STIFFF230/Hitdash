@@ -2,6 +2,7 @@ class_name MainCharacter
 extends CharacterBody2D
 
 signal health_changed(current: float, maximum: float)
+signal upgrades_changed(health: int, attack: int, speed: int)
 signal died
 
 @export var speed: float = 200.0
@@ -12,6 +13,19 @@ signal died
 @export var attack_damage: float = 35
 @export var max_health: float = 100.0
 @export var damage_number_scene: PackedScene
+
+@export_group("Pociones")
+@export var health_per_upgrade: float = 30.0
+@export var attack_per_upgrade: float = 0.25
+@export var speed_per_upgrade: float = 0.15
+
+var upgrade_counts: Dictionary = {"health": 0, "attack": 0, "speed": 0}
+var transition_invulnerable: bool = false
+var _base_max_health: float
+var _base_attack: float
+var _base_speed: float
+var _base_dash_speed: float
+var _invulnerability_generation: int = 0
 
 @onready var character_sprite: AnimatedSprite2D = $CharacterSprite
 @onready var attack_hitbox: CollisionShape2D = $AttackArea/CollisionShape2D
@@ -31,6 +45,10 @@ var is_invulnerable: bool = false
 var debug_invincible: bool = false
 
 func _ready() -> void:
+	_base_max_health = max_health
+	_base_attack = attack_damage
+	_base_speed = speed
+	_base_dash_speed = dash_speed
 	attack_hitbox.disabled = true
 	health = max_health
 	health_changed.emit(health, max_health)
@@ -141,7 +159,7 @@ func _on_attack_area_body_entered(body) -> void:
 		body.hurt(attack_damage)
 
 func hurt(damage: float) -> void:
-	if is_dead or is_invulnerable or debug_invincible:
+	if is_dead or is_invulnerable or debug_invincible or transition_invulnerable:
 		return
 	health = max(health - damage, 0.0)
 	health_changed.emit(health, max_health)
@@ -171,7 +189,7 @@ func _flash_damage() -> void:
 	tween.tween_property(character_sprite, "modulate", Color.WHITE, 0.22)
 
 func die() -> void:
-	if is_dead:
+	if is_dead or transition_invulnerable:
 		return
 	is_dead = true
 	set_physics_process(false)
@@ -190,3 +208,26 @@ func _on_frame_changed():
 		attack_hitbox.disabled = false
 	if (character_sprite.frame == 5):
 		attack_hitbox.disabled = true
+
+
+func apply_upgrade(kind: String) -> void:
+	if not upgrade_counts.has(kind):
+		return
+	upgrade_counts[kind] += 1
+	max_health = _base_max_health + health_per_upgrade * upgrade_counts["health"]
+	attack_damage = _base_attack * (1.0 + attack_per_upgrade * upgrade_counts["attack"])
+	speed = _base_speed * (1.0 + speed_per_upgrade * upgrade_counts["speed"])
+	dash_speed = _base_dash_speed * (1.0 + speed_per_upgrade * upgrade_counts["speed"])
+	if kind == "health":
+		health = minf(health + health_per_upgrade, max_health)
+		health_changed.emit(health, max_health)
+	upgrades_changed.emit(upgrade_counts["health"], upgrade_counts["attack"], upgrade_counts["speed"])
+
+
+func grant_invulnerability(seconds: float) -> void:
+	_invulnerability_generation += 1
+	var generation: int = _invulnerability_generation
+	transition_invulnerable = true
+	await get_tree().create_timer(seconds, false).timeout
+	if generation == _invulnerability_generation:
+		transition_invulnerable = false

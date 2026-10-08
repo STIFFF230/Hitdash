@@ -8,6 +8,8 @@ extends Node2D
 ## los enemigos salen mas reforzados. Pasada la ultima oleada el juego
 ## sigue en modo infinito, subiendo un escalon cada `kills_to_advance`.
 
+signal level_cleared(finished_index: int)
+
 signal wave_changed(index: int, display_name: String, endless_level: int)
 signal kills_changed(kills: int)
 signal score_changed(score: int)
@@ -34,6 +36,7 @@ signal score_changed(score: int)
 @export var score_growth: float = 0.1
 
 @export_group("Oleadas")
+@export var transitions_enabled: bool = true
 ## Si se deja vacio se usan las oleadas por defecto definidas en el codigo.
 @export var waves: Array[WaveConfig] = []
 ## Cuanto se refuerzan los enemigos por cada escalon del modo infinito.
@@ -56,6 +59,7 @@ var _kills: int = 0
 var _kills_this_wave: int = 0
 var _wave_index: int = 0
 var _endless_level: int = 0
+var _awaiting_transition: bool = false
 
 
 func _ready() -> void:
@@ -156,18 +160,22 @@ func _kills_needed(wave: WaveConfig) -> int:
 
 ## Salta directo a una oleada (0 = la primera). Solo para grabar el trailer.
 func jump_to_wave(index: int) -> void:
-	if waves.is_empty():
+	if _awaiting_transition or waves.is_empty():
 		return
 	_wave_index = clampi(index, 0, waves.size() - 1)
 	_kills_this_wave = 0
 	_endless_level = 0
+	_awaiting_transition = false
 	_apply_wave_settings()
 	_announce_wave()
+	_timer.start()
 
 
 # --- Generacion ---------------------------------------------------------
 
 func _on_spawn_timer_timeout() -> void:
+	if _awaiting_transition:
+		return
 	if total_to_spawn >= 0 and _spawned_total >= total_to_spawn:
 		_timer.stop()
 		return
@@ -261,6 +269,8 @@ func _pick_spawn_position() -> Vector2:
 # --- Progresion de oleadas ----------------------------------------------
 
 func _on_enemy_died(enemy: Node) -> void:
+	if _awaiting_transition:
+		return
 	var value: int = int(enemy.get("score_value")) if "score_value" in enemy else 10
 	_score += roundi(value * (1.0 + score_growth * (_wave_index + _endless_level)))
 	score_changed.emit(_score)
@@ -276,6 +286,11 @@ func _on_enemy_died(enemy: Node) -> void:
 
 
 func _advance_wave() -> void:
+	if transitions_enabled and _wave_index < waves.size() - 1:
+		_awaiting_transition = true
+		_timer.stop()
+		level_cleared.emit(_wave_index)
+		return
 	_kills_this_wave = 0
 	if _wave_index < waves.size() - 1:
 		_wave_index += 1
@@ -297,3 +312,35 @@ func _announce_wave() -> void:
 	wave_changed.emit(_wave_index, wave_label(), _endless_level)
 	kills_changed.emit(_kills)
 	score_changed.emit(_score)
+
+
+func start_next_level() -> void:
+	if not _awaiting_transition:
+		return
+	_wave_index += 1
+	_kills_this_wave = 0
+	_awaiting_transition = false
+	_apply_wave_settings()
+	_announce_wave()
+	_timer.start()
+
+
+func clear_enemies() -> void:
+	for enemy: Node in get_tree().get_nodes_in_group("Enemy"):
+		enemy.remove_from_group("Enemy")
+		enemy.set_physics_process(false)
+		## Impide callbacks de animacion y ataques pendientes durante el fundido.
+		if "is_dead" in enemy:
+			enemy.set("is_dead", true)
+		enemy.process_mode = Node.PROCESS_MODE_DISABLED
+		if enemy is CollisionObject2D:
+			enemy.set_deferred("collision_layer", 0)
+			enemy.set_deferred("collision_mask", 0)
+		var area := enemy.get_node_or_null("AttackArea") as Area2D
+		if area != null:
+			area.set_deferred("monitoring", false)
+		var fade := create_tween()
+		fade.tween_property(enemy, "modulate:a", 0.0, 0.4)
+		fade.tween_callback(enemy.queue_free)
+	for projectile: Node in get_tree().get_nodes_in_group("Projectile"):
+		projectile.queue_free()
