@@ -13,6 +13,7 @@ var _score_label: Label
 var _best_label: Label
 var _score: int = 0
 var _best: int = 0
+var _best_name: String = ""
 var _kills: int = 0
 
 
@@ -197,9 +198,17 @@ func _process(_delta: float) -> void:
 func update_score(score: int) -> void:
 	_score = score
 	_score_label.text = "Puntaje: %d" % score
-	_best_label.text = "Récord: %d" % maxi(_best, _score)
+	_refresh_best()
 
 
-func set_best(best: int) -> void:
+func set_best(best: int, best_name: String = "") -> void:
 	_best = best
+	_best_name = best_name
+	_refresh_best()
+
+
+func _refresh_best() -> void:
+	var best_name: String = "Tú" if _score > _best else _best_name
 	_best_label.text = "Récord: %d" % maxi(_best, _score)
+	if not best_name.is_empty():
+		_best_label.text += " · " + best_name

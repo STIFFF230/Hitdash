@@ -88,12 +88,14 @@ func _refresh_records() -> void:
 		child.queue_free()
 	var records := RecordsStore.load_all()
 	_best.text = "Mejor puntaje: %d" % RecordsStore.best_score()
+	if not records.is_empty():
+		_best.text += " · " + str(records[0].name)
 	if records.is_empty():
 		_add_label(_rows, "Aún no hay récords. ¡A jugar!", 22)
 	for index: int in records.size():
 		var entry: Dictionary = records[index]
-		_add_label(_rows, "%d.  %d pts · %d bajas · %s · %s" % [
-			index + 1, entry.score, entry.kills, entry.wave, entry.date.left(10)
+		_add_label(_rows, "%d.  %s · %d pts · %d bajas · %s · %s" % [
+			index + 1, entry.name, entry.score, entry.kills, entry.wave, entry.date.left(10)
 		], 18)
 
 

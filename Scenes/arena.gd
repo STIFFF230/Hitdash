@@ -8,13 +8,18 @@ extends Node2D
 @onready var pause_menu: CanvasLayer = $PauseMenu
 
 var player: MainCharacter = null
+var _final_score: int = 0
+var _final_kills: int = 0
+var _final_wave: String = ""
 
 
 func _ready() -> void:
 	spawner.wave_changed.connect(hud.update_wave)
 	spawner.kills_changed.connect(hud.update_kills)
 	spawner.score_changed.connect(hud.update_score)
-	hud.set_best(RecordsStore.best_score())
+	var best: Dictionary = RecordsStore.best_entry()
+	hud.set_best(int(best.get("score", 0)), str(best.get("name", "")))
+	game_over_screen.name_submitted.connect(_on_name_submitted)
 	pause_menu.restart_requested.connect(_on_restart_requested)
 	pause_menu.menu_requested.connect(_on_menu_requested)
 	pause_menu.spawner = spawner
@@ -42,24 +47,24 @@ func _find_player() -> MainCharacter:
 
 
 func _on_player_died() -> void:
-	var rank := _save_record()
-	game_over_screen.show_screen(spawner.score(), spawner.kills(), spawner.wave_label(), rank)
+	_final_score = spawner.score()
+	_final_kills = spawner.kills()
+	_final_wave = spawner.wave_label()
+	var rank: int = 0 if spawner.trailer_active() or _final_score <= 0 else RecordsStore.rank_for(_final_score)
+	game_over_screen.show_screen(_final_score, _final_kills, _final_wave, rank)
 
 
-func _save_record() -> int:
-	if spawner.trailer_active() or spawner.score() <= 0:
-		return 0
-	return RecordsStore.submit(spawner.score(), spawner.kills(), spawner.wave_label())
+func _on_name_submitted(player_name: String) -> void:
+	var rank: int = RecordsStore.submit(player_name, _final_score, _final_kills, _final_wave)
+	game_over_screen.show_saved_name(player_name, rank)
 
 
 func _on_restart_requested() -> void:
-	_save_record()
 	get_tree().paused = false
 	get_tree().reload_current_scene()
 
 
 func _on_menu_requested() -> void:
-	_save_record()
 	get_tree().paused = false
 	get_tree().change_scene_to_file("res://Scenes/main_menu.tscn")
 
